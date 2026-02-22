@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello World!</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #ffffff;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 3rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            letter-spacing: 0.02em;
+        }
+        .globe {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 2rem;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.85;
+            max-width: 480px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hello World!</h1>
+        <div class="globe">
+            <img src="{{ url_for('static', filename='globe.svg') }}" alt="Globe" width="200" height="200">
+        </div>
+        <p class="subtitle">
+            Your Azure starter project is up and running.
+            This application is deployed as a container on Azure App Service.
+        </p>
+    </div>
+</body>
+</html>

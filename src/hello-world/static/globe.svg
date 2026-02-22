@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <circle cx="100" cy="100" r="90" stroke="#ffffff" stroke-width="2" fill="none" opacity="0.3"/>
+  <circle cx="100" cy="100" r="90" stroke="#ffffff" stroke-width="2.5" fill="none"/>
+  <!-- Equator -->
+  <ellipse cx="100" cy="100" rx="90" ry="30" stroke="#ffffff" stroke-width="1.5" fill="none"/>
+  <!-- Latitude lines -->
+  <ellipse cx="100" cy="68" rx="75" ry="20" stroke="#ffffff" stroke-width="1" fill="none" opacity="0.6"/>
+  <ellipse cx="100" cy="132" rx="75" ry="20" stroke="#ffffff" stroke-width="1" fill="none" opacity="0.6"/>
+  <!-- Longitude lines -->
+  <ellipse cx="100" cy="100" rx="30" ry="90" stroke="#ffffff" stroke-width="1.5" fill="none"/>
+  <ellipse cx="100" cy="100" rx="60" ry="90" stroke="#ffffff" stroke-width="1.5" fill="none"/>
+  <!-- Axis tilt indicator -->
+  <line x1="100" y1="5" x2="100" y2="195" stroke="#ffffff" stroke-width="1" opacity="0.4" stroke-dasharray="4,4"/>
+</svg>
