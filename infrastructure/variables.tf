@@ -48,6 +48,24 @@ variable "subnet_foundry_prefix" {
   default     = "10.0.3.0/24"
 }
 
+variable "subnet_bastion_prefix" {
+  description = "CIDR prefix for the Azure Bastion subnet"
+  type        = string
+  default     = "10.0.4.0/26"
+}
+
+variable "subnet_jumpbox_prefix" {
+  description = "CIDR prefix for the jumpbox VM subnet"
+  type        = string
+  default     = "10.0.5.0/24"
+}
+
+variable "deployer_ip" {
+  description = "Public IP of the deployer to allow through Key Vault firewall (leave empty to skip)"
+  type        = string
+  default     = ""
+}
+
 # ── Foundry Model Deployment ─────────────────────────────────────────────────
 
 variable "foundry_model_name" {

@@ -74,20 +74,13 @@ jobs:
       - name: Dependency Review
         if: github.event_name == 'pull_request'
         uses: actions/dependency-review-action@v4
-
-      - name: Generate SBOM
-        uses: anchore/sbom-action@v0
         with:
-          path: ${{ env.APP_DIR }}
-          format: spdx-json
-          output-file: sbom.spdx.json
+          fail-on-severity: high
 
-      - name: Scan SBOM for vulnerabilities
-        uses: anchore/scan-action@v4
+      - name: Submit Dependencies
+        uses: microsoft/component-detection-action@v1
         with:
-          sbom: sbom.spdx.json
-          fail-build: true
-          severity-cutoff: high
+          directoryExclusionList: infrastructure
 
   # ── Stage 3: Build & Push Container ─────────────────────────────────────
   build:

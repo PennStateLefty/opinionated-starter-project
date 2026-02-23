@@ -29,6 +29,14 @@ variable "subnet_foundry_prefix" {
   type = string
 }
 
+variable "subnet_bastion_prefix" {
+  type = string
+}
+
+variable "subnet_jumpbox_prefix" {
+  type = string
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
@@ -73,6 +81,28 @@ resource "azurerm_subnet" "foundry" {
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.main.name
   address_prefixes     = [var.subnet_foundry_prefix]
+
+  delegation {
+    name = "containerapp-delegation"
+    service_delegation {
+      name    = "Microsoft.App/environments"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+    }
+  }
+}
+
+resource "azurerm_subnet" "bastion" {
+  name                 = "AzureBastionSubnet"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = azurerm_virtual_network.main.name
+  address_prefixes     = [var.subnet_bastion_prefix]
+}
+
+resource "azurerm_subnet" "jumpbox" {
+  name                 = "snet-jumpbox"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = azurerm_virtual_network.main.name
+  address_prefixes     = [var.subnet_jumpbox_prefix]
 }
 
 # ── Network Security Groups ─────────────────────────────────────────────────
@@ -142,6 +172,71 @@ resource "azurerm_private_dns_zone_virtual_network_link" "openai" {
   virtual_network_id    = azurerm_virtual_network.main.id
 }
 
+resource "azurerm_private_dns_zone" "services_ai" {
+  name                = "privatelink.services.ai.azure.com"
+  resource_group_name = var.resource_group_name
+  tags                = var.tags
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "services_ai" {
+  name                  = "link-services-ai"
+  resource_group_name   = var.resource_group_name
+  private_dns_zone_name = azurerm_private_dns_zone.services_ai.name
+  virtual_network_id    = azurerm_virtual_network.main.id
+}
+
+resource "azurerm_private_dns_zone" "search" {
+  name                = "privatelink.search.windows.net"
+  resource_group_name = var.resource_group_name
+  tags                = var.tags
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "search" {
+  name                  = "link-search"
+  resource_group_name   = var.resource_group_name
+  private_dns_zone_name = azurerm_private_dns_zone.search.name
+  virtual_network_id    = azurerm_virtual_network.main.id
+}
+
+resource "azurerm_private_dns_zone" "blob" {
+  name                = "privatelink.blob.core.windows.net"
+  resource_group_name = var.resource_group_name
+  tags                = var.tags
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "blob" {
+  name                  = "link-blob"
+  resource_group_name   = var.resource_group_name
+  private_dns_zone_name = azurerm_private_dns_zone.blob.name
+  virtual_network_id    = azurerm_virtual_network.main.id
+}
+
+resource "azurerm_private_dns_zone" "cosmosdb" {
+  name                = "privatelink.documents.azure.com"
+  resource_group_name = var.resource_group_name
+  tags                = var.tags
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "cosmosdb" {
+  name                  = "link-cosmosdb"
+  resource_group_name   = var.resource_group_name
+  private_dns_zone_name = azurerm_private_dns_zone.cosmosdb.name
+  virtual_network_id    = azurerm_virtual_network.main.id
+}
+
+resource "azurerm_private_dns_zone" "file" {
+  name                = "privatelink.file.core.windows.net"
+  resource_group_name = var.resource_group_name
+  tags                = var.tags
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "file" {
+  name                  = "link-file"
+  resource_group_name   = var.resource_group_name
+  private_dns_zone_name = azurerm_private_dns_zone.file.name
+  virtual_network_id    = azurerm_virtual_network.main.id
+}
+
 # ── Outputs ──────────────────────────────────────────────────────────────────
 
 output "vnet_id" {
@@ -174,4 +269,32 @@ output "dns_zone_cognitive_id" {
 
 output "dns_zone_openai_id" {
   value = azurerm_private_dns_zone.openai.id
+}
+
+output "dns_zone_services_ai_id" {
+  value = azurerm_private_dns_zone.services_ai.id
+}
+
+output "dns_zone_search_id" {
+  value = azurerm_private_dns_zone.search.id
+}
+
+output "dns_zone_blob_id" {
+  value = azurerm_private_dns_zone.blob.id
+}
+
+output "dns_zone_cosmosdb_id" {
+  value = azurerm_private_dns_zone.cosmosdb.id
+}
+
+output "dns_zone_file_id" {
+  value = azurerm_private_dns_zone.file.id
+}
+
+output "subnet_bastion_id" {
+  value = azurerm_subnet.bastion.id
+}
+
+output "subnet_jumpbox_id" {
+  value = azurerm_subnet.jumpbox.id
 }

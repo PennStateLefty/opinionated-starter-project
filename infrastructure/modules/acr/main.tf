@@ -13,13 +13,17 @@ variable "resource_group_name" {
   type = string
 }
 
+variable "suffix" {
+  type = string
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
 }
 
 resource "azurerm_container_registry" "main" {
-  name                = replace("acr${var.project_name}", "-", "")
+  name                = replace("acr${var.project_name}${var.suffix}", "-", "")
   location            = var.location
   resource_group_name = var.resource_group_name
   sku                 = "Standard"

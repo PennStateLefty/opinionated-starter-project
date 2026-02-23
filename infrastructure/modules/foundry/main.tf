@@ -3,6 +3,14 @@
 # Creates: AI Services account, project, model deployment, capability hosts,
 #          dependent resources (CosmosDB, AI Search, Storage), and RBAC
 
+terraform {
+  required_providers {
+    azapi = {
+      source = "azure/azapi"
+    }
+  }
+}
+
 variable "project_name" {
   type = string
 }
@@ -28,6 +36,22 @@ variable "dns_zone_cognitive_id" {
 }
 
 variable "dns_zone_openai_id" {
+  type = string
+}
+
+variable "dns_zone_services_ai_id" {
+  type = string
+}
+
+variable "dns_zone_search_id" {
+  type = string
+}
+
+variable "dns_zone_blob_id" {
+  type = string
+}
+
+variable "dns_zone_cosmosdb_id" {
   type = string
 }
 
@@ -61,16 +85,12 @@ variable "tags" {
   default = {}
 }
 
-# ── Unique Suffix ────────────────────────────────────────────────────────────
-
-resource "random_string" "suffix" {
-  length  = 4
-  special = false
-  upper   = false
+variable "suffix" {
+  type = string
 }
 
 locals {
-  suffix       = random_string.suffix.result
+  suffix       = var.suffix
   account_name = "foundry${var.project_name}${local.suffix}"
   project_name = "proj${var.project_name}${local.suffix}"
 }
@@ -85,6 +105,7 @@ resource "azurerm_cosmosdb_account" "main" {
   kind                = "GlobalDocumentDB"
 
   local_authentication_disabled = true
+  public_network_access_enabled = false
 
   consistency_policy {
     consistency_level = "Session"
@@ -99,17 +120,17 @@ resource "azurerm_cosmosdb_account" "main" {
 }
 
 resource "azurerm_search_service" "main" {
-  name                = "search-${var.project_name}-${local.suffix}"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  sku                 = "standard"
+  name                          = "search-${var.project_name}-${local.suffix}"
+  location                      = var.location
+  resource_group_name           = var.resource_group_name
+  sku                           = "standard"
+  public_network_access_enabled = false
 
   identity {
     type = "SystemAssigned"
   }
 
   local_authentication_enabled = false
-  authentication_failure_mode  = "http401WithBearerChallenge"
 
   tags = var.tags
 }
@@ -124,11 +145,7 @@ resource "azurerm_storage_account" "main" {
 
   allow_nested_items_to_be_public = false
   shared_access_key_enabled       = false
-
-  network_rules {
-    default_action = "Allow"
-    bypass         = ["AzureServices"]
-  }
+  public_network_access_enabled   = false
 
   tags = var.tags
 }
@@ -155,16 +172,13 @@ resource "azapi_resource" "ai_account" {
       customSubDomainName    = local.account_name
       publicNetworkAccess    = "Disabled"
       disableLocalAuth       = true
-      networkAcls = {
-        defaultAction = "Deny"
-      }
     }
   }
 
   tags = var.tags
 }
 
-# ── Private Endpoint for AI Services ────────────────────────────────────────
+# ── Private Endpoints for AI Services ────────────────────────────────────────
 
 resource "azurerm_private_endpoint" "ai_account" {
   name                = "pe-${local.account_name}"
@@ -182,7 +196,73 @@ resource "azurerm_private_endpoint" "ai_account" {
 
   private_dns_zone_group {
     name                 = "dns-zone-group-cognitive"
-    private_dns_zone_ids = [var.dns_zone_cognitive_id, var.dns_zone_openai_id]
+    private_dns_zone_ids = [var.dns_zone_cognitive_id, var.dns_zone_openai_id, var.dns_zone_services_ai_id]
+  }
+}
+
+# ── Private Endpoint for Azure AI Search ─────────────────────────────────────
+
+resource "azurerm_private_endpoint" "search" {
+  name                = "pe-${azurerm_search_service.main.name}"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  subnet_id           = var.subnet_private_endpoints_id
+  tags                = var.tags
+
+  private_service_connection {
+    name                           = "psc-search"
+    private_connection_resource_id = azurerm_search_service.main.id
+    is_manual_connection           = false
+    subresource_names              = ["searchService"]
+  }
+
+  private_dns_zone_group {
+    name                 = "dns-zone-group-search"
+    private_dns_zone_ids = [var.dns_zone_search_id]
+  }
+}
+
+# ── Private Endpoint for Azure Storage ───────────────────────────────────────
+
+resource "azurerm_private_endpoint" "storage_blob" {
+  name                = "pe-${azurerm_storage_account.main.name}-blob"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  subnet_id           = var.subnet_private_endpoints_id
+  tags                = var.tags
+
+  private_service_connection {
+    name                           = "psc-blob"
+    private_connection_resource_id = azurerm_storage_account.main.id
+    is_manual_connection           = false
+    subresource_names              = ["blob"]
+  }
+
+  private_dns_zone_group {
+    name                 = "dns-zone-group-blob"
+    private_dns_zone_ids = [var.dns_zone_blob_id]
+  }
+}
+
+# ── Private Endpoint for Azure Cosmos DB ─────────────────────────────────────
+
+resource "azurerm_private_endpoint" "cosmosdb" {
+  name                = "pe-${azurerm_cosmosdb_account.main.name}"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  subnet_id           = var.subnet_private_endpoints_id
+  tags                = var.tags
+
+  private_service_connection {
+    name                           = "psc-cosmosdb"
+    private_connection_resource_id = azurerm_cosmosdb_account.main.id
+    is_manual_connection           = false
+    subresource_names              = ["Sql"]
+  }
+
+  private_dns_zone_group {
+    name                 = "dns-zone-group-cosmosdb"
+    private_dns_zone_ids = [var.dns_zone_cosmosdb_id]
   }
 }
 
@@ -316,7 +396,6 @@ resource "azapi_resource" "project_capability_host" {
 
   body = {
     properties = {
-      capabilityHostKind       = "Agents"
       vectorStoreConnections   = [azurerm_search_service.main.name]
       storageConnections       = [azurerm_storage_account.main.name]
       threadStorageConnections = [azurerm_cosmosdb_account.main.name]
@@ -335,11 +414,13 @@ resource "azurerm_role_assignment" "project_storage_blob" {
   principal_id         = azapi_resource.project.identity[0].principal_id
 }
 
-# Project SMI → Cosmos DB Operator (account level)
-resource "azurerm_role_assignment" "project_cosmos_operator" {
-  scope                = azurerm_cosmosdb_account.main.id
-  role_definition_name = "Cosmos DB Operator"
-  principal_id         = azapi_resource.project.identity[0].principal_id
+# Project SMI → Cosmos DB Built-in Data Contributor (Cosmos data-plane role)
+resource "azurerm_cosmosdb_sql_role_assignment" "project_cosmos_data" {
+  resource_group_name = var.resource_group_name
+  account_name        = azurerm_cosmosdb_account.main.name
+  role_definition_id  = "${azurerm_cosmosdb_account.main.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+  principal_id        = azapi_resource.project.identity[0].principal_id
+  scope               = azurerm_cosmosdb_account.main.id
 }
 
 # Project SMI → Search Index Data Contributor
@@ -353,6 +434,13 @@ resource "azurerm_role_assignment" "project_search_contributor" {
 resource "azurerm_role_assignment" "project_search_service" {
   scope                = azurerm_search_service.main.id
   role_definition_name = "Search Service Contributor"
+  principal_id         = azapi_resource.project.identity[0].principal_id
+}
+
+# Project SMI → Cognitive Services OpenAI Contributor
+resource "azurerm_role_assignment" "project_openai_contributor" {
+  scope                = azapi_resource.ai_account.id
+  role_definition_name = "Cognitive Services OpenAI Contributor"
   principal_id         = azapi_resource.project.identity[0].principal_id
 }
 

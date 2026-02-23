@@ -44,3 +44,13 @@ output "foundry_project_name" {
   description = "Microsoft Foundry project name"
   value       = module.foundry.project_name
 }
+
+output "bastion_name" {
+  description = "Azure Bastion host name"
+  value       = module.jumpbox.bastion_name
+}
+
+output "jumpbox_vm_name" {
+  description = "Jumpbox VM name"
+  value       = module.jumpbox.vm_name
+}
