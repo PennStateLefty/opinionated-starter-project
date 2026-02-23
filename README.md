@@ -92,6 +92,14 @@ Create a `production` environment in your repo settings with **required reviewer
 
 ### 1. Deploy Infrastructure
 
+Set your Azure subscription ID as an environment variable (this avoids storing secrets in source control):
+
+```bash
+export TF_VAR_subscription_id="your-azure-subscription-id"
+```
+
+Then run Terraform:
+
 ```bash
 cd infrastructure
 terraform init

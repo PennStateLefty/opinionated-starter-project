@@ -1,0 +1,32 @@
+{
+  "name": "Opinionated Starter Project",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+    "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/devcontainers/features/terraform:1": {},
+    "ghcr.io/devcontainers/features/node:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "ms-python.python",
+        "ms-python.debugpy",
+        "ms-playwright.playwright",
+        "hashicorp.terraform",
+        "ms-azuretools.vscode-azureterraform",
+        "redhat.vscode-yaml",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/python/current/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["src/hello-world/tests"],
+        "terraform.languageServer.enable": true
+      }
+    }
+  },
+  "postCreateCommand": "pip install -r src/hello-world/requirements-dev.txt && playwright install --with-deps chromium",
+  "remoteUser": "vscode"
+}
