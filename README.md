@@ -38,7 +38,7 @@ A "Hello World" style project demonstrating Azure best practices for infrastruct
 │       └── foundry/         # Microsoft Foundry v2 (AzAPI)
 ├── src/hello-world/         # Python Flask application
 │   ├── app.py               # Flask app (port 8000)
-│   ├── Dockerfile           # MCR-based container image
+│   ├── Dockerfile           # Python slim container image
 │   ├── templates/           # HTML templates
 │   ├── static/              # Static assets
 │   └── tests/               # pytest + Playwright tests
@@ -85,8 +85,8 @@ Configure these secrets in your GitHub repository settings:
 | `APP_SERVICE_NAME` | App Service name (e.g., `app-helloworld`) |
 | `RESOURCE_GROUP_NAME` | Resource group name (e.g., `rg-helloworld-development`) |
 
-### GitHub Environment
-Create a `production` environment in your repo settings with **required reviewers** for the deployment approval gate.
+### GitHub Environment (Optional)
+For production approval gates, create a `production` environment in your repo settings with **required reviewers** and add a matching federated credential with subject `repo:<OWNER>/<REPO>:environment:production`. This sample deploys without an environment gate for simplicity.
 
 ## Getting Started
 
@@ -148,7 +148,7 @@ docker run -p 8000:8000 hello-world:local
 ### CD (`cd.yml`)
 - **Triggered automatically** after CI succeeds, or via manual dispatch
 - Deploys container to the **staging** deployment slot
-- Waits for health check, then requires **approval** in the `production` environment before swapping slots
+- Waits for staging health check, then swaps the staging slot to production
 
 ## Security Features
 
