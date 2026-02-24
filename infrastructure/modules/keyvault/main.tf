@@ -26,9 +26,9 @@ variable "dns_zone_keyvault_id" {
 }
 
 variable "deployer_ip" {
-  description = "IP address of the deployer to allow through Key Vault firewall"
-  type        = string
-  default     = ""
+  description = "IP addresses of the deployer to allow through Key Vault firewall"
+  type        = list(string)
+  default     = []
 }
 
 variable "tags" {
@@ -52,7 +52,7 @@ resource "azurerm_key_vault" "main" {
   network_acls {
     default_action = "Deny"
     bypass         = "AzureServices"
-    ip_rules       = var.deployer_ip != "" ? [var.deployer_ip] : []
+    ip_rules       = var.deployer_ip
   }
 
   tags = var.tags

@@ -31,6 +31,10 @@ variable "subnet_private_endpoints_id" {
   type = string
 }
 
+variable "subnet_agent_id" {
+  type = string
+}
+
 variable "dns_zone_cognitive_id" {
   type = string
 }
@@ -145,7 +149,11 @@ resource "azurerm_storage_account" "main" {
 
   allow_nested_items_to_be_public = false
   shared_access_key_enabled       = false
-  public_network_access_enabled   = false
+
+  network_rules {
+    default_action = "Deny"
+    bypass         = ["AzureServices"]
+  }
 
   tags = var.tags
 }
@@ -153,10 +161,11 @@ resource "azurerm_storage_account" "main" {
 # ── AI Services Account (Foundry v2) ────────────────────────────────────────
 
 resource "azapi_resource" "ai_account" {
-  type      = "Microsoft.CognitiveServices/accounts@2025-04-01-preview"
-  name      = local.account_name
-  location  = var.location
-  parent_id = var.resource_group_id
+  type                      = "Microsoft.CognitiveServices/accounts@2025-06-01"
+  name                      = local.account_name
+  location                  = var.location
+  parent_id                 = var.resource_group_id
+  schema_validation_enabled = false
 
   identity {
     type = "SystemAssigned"
@@ -171,7 +180,17 @@ resource "azapi_resource" "ai_account" {
       allowProjectManagement = true
       customSubDomainName    = local.account_name
       publicNetworkAccess    = "Disabled"
-      disableLocalAuth       = true
+      disableLocalAuth       = false
+      networkAcls = {
+        defaultAction = "Allow"
+      }
+      networkInjections = [
+        {
+          scenario                   = "agent"
+          subnetArmId                = var.subnet_agent_id
+          useMicrosoftManagedNetwork = false
+        }
+      ]
     }
   }
 
@@ -269,7 +288,7 @@ resource "azurerm_private_endpoint" "cosmosdb" {
 # ── Model Deployment ─────────────────────────────────────────────────────────
 
 resource "azapi_resource" "model_deployment" {
-  type      = "Microsoft.CognitiveServices/accounts/deployments@2025-04-01-preview"
+  type      = "Microsoft.CognitiveServices/accounts/deployments@2025-06-01"
   name      = var.model_name
   parent_id = azapi_resource.ai_account.id
 
@@ -291,10 +310,11 @@ resource "azapi_resource" "model_deployment" {
 # ── Foundry Project ──────────────────────────────────────────────────────────
 
 resource "azapi_resource" "project" {
-  type      = "Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview"
-  name      = local.project_name
-  location  = var.location
-  parent_id = azapi_resource.ai_account.id
+  type                      = "Microsoft.CognitiveServices/accounts/projects@2025-06-01"
+  name                      = local.project_name
+  location                  = var.location
+  parent_id                 = azapi_resource.ai_account.id
+  schema_validation_enabled = false
 
   identity {
     type = "SystemAssigned"
@@ -313,7 +333,7 @@ resource "azapi_resource" "project" {
 # ── Project Connections ──────────────────────────────────────────────────────
 
 resource "azapi_resource" "connection_cosmosdb" {
-  type      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview"
+  type      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01"
   name      = azurerm_cosmosdb_account.main.name
   parent_id = azapi_resource.project.id
 
@@ -332,7 +352,7 @@ resource "azapi_resource" "connection_cosmosdb" {
 }
 
 resource "azapi_resource" "connection_storage" {
-  type      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview"
+  type      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01"
   name      = azurerm_storage_account.main.name
   parent_id = azapi_resource.project.id
 
@@ -351,7 +371,7 @@ resource "azapi_resource" "connection_storage" {
 }
 
 resource "azapi_resource" "connection_search" {
-  type      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview"
+  type      = "Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01"
   name      = azurerm_search_service.main.name
   parent_id = azapi_resource.project.id
 
@@ -372,14 +392,13 @@ resource "azapi_resource" "connection_search" {
 # ── Capability Hosts ─────────────────────────────────────────────────────────
 
 resource "azapi_resource" "account_capability_host" {
-  type      = "Microsoft.CognitiveServices/accounts/capabilityHosts@2025-04-01-preview"
-  name      = "caphostacc"
-  parent_id = azapi_resource.ai_account.id
+  type                      = "Microsoft.CognitiveServices/accounts/capabilityHosts@2025-06-01"
+  name                      = "caphostacc"
+  parent_id                 = azapi_resource.ai_account.id
+  schema_validation_enabled = false
 
   body = {
-    properties = {
-      capabilityHostKind = "Agents"
-    }
+    properties = {}
   }
 
   depends_on = [
@@ -390,12 +409,14 @@ resource "azapi_resource" "account_capability_host" {
 }
 
 resource "azapi_resource" "project_capability_host" {
-  type      = "Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-04-01-preview"
-  name      = "caphostproj"
-  parent_id = azapi_resource.project.id
+  type                      = "Microsoft.CognitiveServices/accounts/projects/capabilityHosts@2025-06-01"
+  name                      = "caphostproj"
+  parent_id                 = azapi_resource.project.id
+  schema_validation_enabled = false
 
   body = {
     properties = {
+      capabilityHostKind       = "Agents"
       vectorStoreConnections   = [azurerm_search_service.main.name]
       storageConnections       = [azurerm_storage_account.main.name]
       threadStorageConnections = [azurerm_cosmosdb_account.main.name]
@@ -406,6 +427,13 @@ resource "azapi_resource" "project_capability_host" {
 }
 
 # ── RBAC Role Assignments ───────────────────────────────────────────────────
+
+# Project SMI → Cosmos DB Operator (ARM-level)
+resource "azurerm_role_assignment" "project_cosmos_operator" {
+  scope                = azurerm_cosmosdb_account.main.id
+  role_definition_name = "Cosmos DB Operator"
+  principal_id         = azapi_resource.project.identity[0].principal_id
+}
 
 # Project SMI → Storage Blob Data Contributor
 resource "azurerm_role_assignment" "project_storage_blob" {

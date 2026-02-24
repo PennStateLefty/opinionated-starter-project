@@ -27,6 +27,7 @@ infrastructure/.terraform.lock.hcl
 infrastructure/*.tfstate
 infrastructure/*.tfstate.backup
 infrastructure/*.tfplan
+infrastructure/tfplan
 infrastructure/crash.log
 
 # IDE

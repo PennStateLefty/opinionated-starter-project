@@ -91,6 +91,7 @@ module "foundry" {
   resource_group_name         = azurerm_resource_group.main.name
   resource_group_id           = azurerm_resource_group.main.id
   subnet_private_endpoints_id = module.networking.subnet_private_endpoints_id
+  subnet_agent_id             = module.networking.subnet_foundry_id
   dns_zone_cognitive_id       = module.networking.dns_zone_cognitive_id
   dns_zone_openai_id          = module.networking.dns_zone_openai_id
   dns_zone_services_ai_id     = module.networking.dns_zone_services_ai_id
