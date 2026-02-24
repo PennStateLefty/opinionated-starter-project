@@ -16,9 +16,6 @@ permissions:
   id-token: write
   contents: read
 
-env:
-  APP_NAME: "" # Set via Terraform output or override below
-
 jobs:
   # ── Stage 1: Deploy to Staging Slot ─────────────────────────────────────
   deploy-staging:

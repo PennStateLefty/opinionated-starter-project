@@ -77,11 +77,6 @@ jobs:
         with:
           fail-on-severity: high
 
-      - name: Submit Dependencies
-        uses: microsoft/component-detection-action@v1
-        with:
-          directoryExclusionList: infrastructure
-
   # ── Stage 3: Build & Push Container ─────────────────────────────────────
   build:
     name: "Build & Push"
