@@ -2,6 +2,8 @@
 
 A "Hello World" style project demonstrating Azure best practices for infrastructure-as-code, containerized applications, and CI/CD pipelines.
 
+> **New here?** Start with the [docs](docs/README.md) for a walkthrough of CI/CD concepts, pipeline flows, and how authentication works.
+
 ## Architecture
 
 ```
