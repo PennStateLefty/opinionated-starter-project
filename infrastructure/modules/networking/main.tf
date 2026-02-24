@@ -119,17 +119,8 @@ resource "azurerm_subnet_network_security_group_association" "private_endpoints"
   network_security_group_id = azurerm_network_security_group.private_endpoints.id
 }
 
-resource "azurerm_network_security_group" "foundry" {
-  name                = "nsg-foundry"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  tags                = var.tags
-}
-
-resource "azurerm_subnet_network_security_group_association" "foundry" {
-  subnet_id                 = azurerm_subnet.foundry.id
-  network_security_group_id = azurerm_network_security_group.foundry.id
-}
+# Note: No NSG on the foundry/agent subnet — Microsoft.App/environments
+# delegated subnets manage their own network policies.
 
 # ── Private DNS Zones ────────────────────────────────────────────────────────
 
