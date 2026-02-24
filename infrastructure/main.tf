@@ -16,7 +16,7 @@ locals {
 }
 
 resource "azurerm_resource_group" "main" {
-  name     = "rg-${var.project_name}-${var.environment}"
+  name     = "rg-${var.project_name}-${var.environment}-${local.suffix}"
   location = var.location
   tags     = local.tags
 }
@@ -61,7 +61,6 @@ module "keyvault" {
   resource_group_name         = azurerm_resource_group.main.name
   subnet_private_endpoints_id = module.networking.subnet_private_endpoints_id
   dns_zone_keyvault_id        = module.networking.dns_zone_keyvault_id
-  deployer_ip                 = var.deployer_ip
   tags                        = local.tags
 }
 

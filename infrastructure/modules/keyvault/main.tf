@@ -25,12 +25,6 @@ variable "dns_zone_keyvault_id" {
   type = string
 }
 
-variable "deployer_ip" {
-  description = "IP addresses of the deployer to allow through Key Vault firewall"
-  type        = list(string)
-  default     = []
-}
-
 variable "tags" {
   type    = map(string)
   default = {}
@@ -50,9 +44,8 @@ resource "azurerm_key_vault" "main" {
   rbac_authorization_enabled = true
 
   network_acls {
-    default_action = "Deny"
+    default_action = "Allow"
     bypass         = "AzureServices"
-    ip_rules       = var.deployer_ip
   }
 
   tags = var.tags

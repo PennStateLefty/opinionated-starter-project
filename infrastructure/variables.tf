@@ -60,12 +60,6 @@ variable "subnet_jumpbox_prefix" {
   default     = "10.0.5.0/24"
 }
 
-variable "deployer_ip" {
-  description = "Public IPs of the deployer to allow through Key Vault firewall"
-  type        = list(string)
-  default     = []
-}
-
 # ── Foundry Model Deployment ─────────────────────────────────────────────────
 
 variable "foundry_model_name" {
