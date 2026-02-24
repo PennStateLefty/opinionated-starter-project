@@ -68,11 +68,21 @@ jobs:
           echo "Staging slot did not become healthy"
           exit 1
 
-  # ── Stage 2: Swap to Production ────────────────────────────────────────
+      - name: Set app URL output
+        id: app
+        run: echo "url=https://${{ secrets.APP_SERVICE_NAME }}.azurewebsites.net" >> "$GITHUB_OUTPUT"
+
+    outputs:
+      app_url: ${{ steps.app.outputs.url }}
+
+  # ── Stage 2: Swap to Production (Approval Gate) ────────────────────────
   swap-production:
     name: "Swap to Production"
     runs-on: ubuntu-latest
     needs: deploy-staging
+    environment:
+      name: production
+      url: ${{ needs.deploy-staging.outputs.app_url }}
 
     steps:
       - name: Azure Login

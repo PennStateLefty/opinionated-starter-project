@@ -55,13 +55,13 @@ A "Hello World" style project demonstrating Azure best practices for infrastruct
 2. A service principal with Contributor + User Access Administrator roles on the subscription
 
 ### Workload Identity Federation (OIDC)
-Create a federated credential on your service principal for GitHub Actions:
+Create federated credentials on your service principal for GitHub Actions. Two credentials are needed — one for branch-based workflows (CI, Terraform) and one for the `production` environment (CD approval gate):
 
 ```bash
 # Create the app registration (if not already done)
 az ad app create --display-name "github-actions-starter"
 
-# Add federated credential for your GitHub repo
+# Federated credential for branch-based workflows (CI, Terraform)
 az ad app federated-credential create \
   --id <APP_OBJECT_ID> \
   --parameters '{
@@ -70,7 +70,19 @@ az ad app federated-credential create \
     "subject": "repo:<OWNER>/<REPO>:ref:refs/heads/main",
     "audiences": ["api://AzureADTokenExchange"]
   }'
+
+# Federated credential for CD production environment (approval gate)
+az ad app federated-credential create \
+  --id <APP_OBJECT_ID> \
+  --parameters '{
+    "name": "github-production-environment",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "subject": "repo:<OWNER>/<REPO>:environment:production",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
 ```
+
+> **Why two credentials?** When a GitHub Actions job references an `environment`, the OIDC token's `sub` claim changes from `repo:<owner>/<repo>:ref:refs/heads/main` to `repo:<owner>/<repo>:environment:production`. Each claim pattern requires its own federated credential on the same app registration.
 
 ### GitHub Repository Secrets
 Configure these secrets in your GitHub repository settings:
@@ -85,8 +97,8 @@ Configure these secrets in your GitHub repository settings:
 | `APP_SERVICE_NAME` | App Service name (e.g., `app-helloworld`) |
 | `RESOURCE_GROUP_NAME` | Resource group name (e.g., `rg-helloworld-development`) |
 
-### GitHub Environment (Optional)
-For production approval gates, create a `production` environment in your repo settings with **required reviewers** and add a matching federated credential with subject `repo:<OWNER>/<REPO>:environment:production`. This sample deploys without an environment gate for simplicity.
+### GitHub Environment
+Create a `production` environment in your repo settings (**Settings → Environments → New environment**) with **required reviewers** for the deployment approval gate. Repository-level secrets are inherited automatically — no need to duplicate them in the environment.
 
 ## Getting Started
 
@@ -148,7 +160,7 @@ docker run -p 8000:8000 hello-world:local
 ### CD (`cd.yml`)
 - **Triggered automatically** after CI succeeds, or via manual dispatch
 - Deploys container to the **staging** deployment slot
-- Waits for staging health check, then swaps the staging slot to production
+- Waits for staging health check, then requires **approval** in the `production` environment before swapping slots
 
 ## Security Features
 
