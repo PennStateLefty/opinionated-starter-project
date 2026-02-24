@@ -1,10 +1,12 @@
 import subprocess
 import time
 import signal
+import os
 import pytest
 from playwright.sync_api import sync_playwright
 
 APP_URL = "http://localhost:8000"
+APP_DIR = os.path.join(os.path.dirname(__file__), "..")
 
 
 @pytest.fixture(scope="module")
@@ -12,7 +14,7 @@ def flask_server():
     """Start the Flask app in a subprocess for E2E testing."""
     proc = subprocess.Popen(
         ["python", "app.py"],
-        cwd="src/hello-world",
+        cwd=APP_DIR,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
